@@ -35,24 +35,172 @@ int main(int argc, char const *argv[]) {
 
 		switch(mode) {
 		//관리자로 테스트
-			case 0: {		
-				char admin_id[20], admin_pw[20];
+			case 0: {
+					cout<< "----------작업 선택----------\n 1.관리자 등록\n 2.관리자 로그인\n 3.고객정보 출력\n 4.고객정보 수정\n 5.관리자 로그아웃\n>>> ";
 
-				cout<<"관리자 ID : ";
-				cin >> admin_id;
-				cout<<"관리자 PW : ";
-				cin >> admin_pw;
+					char admin_id[20], admin_pw[20];
+					int todo; 
+					cin  >> todo;
+					admin.cmd = todo;
+					cout.clear(); cin.clear();
+					//1. 관리자 등록
+					//2. 관리자 로그인
+					//3. 관리자 고객정보 조회
+					//4. 관리자 고객정보 수정
+					//5. 관리자 로그아웃
+					switch(admin.cmd){
+						case 1: {
+								cout << "관리자 등록\n 등록할 관리자 ID : " ;
+								cin >> admin_id;
+								cout << "등록할 관리자 PassWord : ";
+								cin >> admin_pw;
 
-				cout.clear();cin.clear();
+								//client에 ID와 PW정보를 담아 메시지 송신
+								admin.mtype = MSG_TYPE_ADMIN;
+								strcpy(admin.adminId, admin_id);
+								strcpy(admin.adminPw, admin_pw);
+								admin.admin_login = false;
+								int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+								//msgsnd() 예외처리
+								if(sndSize != 0){
+									perror("msgsnd() error!(cmd=1)");
+									exit(0);
+								}
 
-				/*메시지 송신 준비*/
-				admin.mtype = MSG_TYPE_ADMIN;		//메시지 타입 지정
-				strcpy(admin.adminId,admin_id);		//입력값 저장
-				strcpy(admin.adminPw,admin_pw);		
-				/*메시지 송신*/
-				msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
-				break;
-			}
+								//메시지 수신(해당 회원의 정보가 구조체에 담긴 메시지를 받음)
+								int rcvSize = msgrcv(msq_id, &admin, MSG_SIZE_ADMIN, 0, 0);
+								//msgrcv() 에외처리
+								if(rcvSize == -1) {
+									perror("msgrcv() error!(cmd=1) ");
+									exit(-1);
+								}
+								//메시지 수신 성공 시 서버에서 받은 데이터 출력(임시)
+								else if(rcvSize != -1) {
+									if(errno != ENOMSG) {
+										cout << "-- 관리자 등록 완료 --"; 
+										puts(admin.adminId);
+										puts(admin.adminPw);
+
+									}
+								}
+								break;
+
+							}
+						case 2: {
+
+								cout << "관리자 로그인\n 관리자 ID : " ;
+								cin >> admin_id;
+								cout << "관리자 PassWord : ";
+								cin >> admin_pw;
+
+								//client에 ID와 PW정보를 담아 메시지 송신
+								admin.mtype = MSG_TYPE_ADMIN;
+								strcpy(admin.adminId, admin_id);
+								strcpy(admin.adminPw, admin_pw);
+								admin.admin_login = false;
+								int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+								//msgsnd() 예외처리
+								if(sndSize != 0){
+									perror("msgsnd() error!(cmd=1)");
+									exit(0);
+								}
+
+								//메시지 수신(해당 회원의 정보가 구조체에 담긴 메시지를 받음)
+								int rcvSize = msgrcv(msq_id, &admin, MSG_SIZE_ADMIN, 0, 0);
+								//msgrcv() 에외처리
+								if(rcvSize == -1) {
+									perror("msgrcv() error!(cmd=1) ");
+									exit(-1);
+								}
+								//메시지 수신 성공 시 서버에서 받은 데이터 출력(임시)
+								else if(rcvSize != -1) {
+									if(errno != ENOMSG) {
+										cout << "-- 관리자 로그인  완료 --";                                                       						            }
+								}
+								break;
+
+							}
+						case 3: {
+								puts("모든 고객 정보 출력");
+								//모든 고객 정보 출력 
+								if(admin.admin_login == true) //권한이 있을 경우
+								{
+									admin.mtype = MSG_TYPE_ADMIN; 
+									int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+									//msgsnd() 예외처리
+									if(sndSize != 0){
+										perror("msgsnd() error!(cmd=1)");
+										exit(0);
+									}
+									//고객명수 파악하는 메세지 받기 
+									int rcvSize = msgrcv(msq_id, &admin, MSG_SIZE_ADMIN, 0, 0);
+									int size = admin.clientCnt;
+									int cnt ;
+									for (cnt = 0 ; cnt < size ; cnt++)
+									{
+										int rcvSize = msgrcv(msq_id , &admin , MSG_SIZE_ADMIN , 0 , 0);
+										//msgrcv() 에외처리
+										if(rcvSize == -1) {
+											perror("msgrcv() error!(cmd=1) ");
+											exit(-1);
+										}
+										//메시지 수신 성공 시 서버에서 받은 데이터 출력(임시)
+										else if(rcvSize != -1) {
+											if(errno != ENOMSG && admin.admin_login == true) {
+
+												cout << admin.ClientInfo << endl;
+											} 
+											else if(admin.admin_login == false)
+											{
+												cout << "관리자 권한 없읍!" << endl;
+											}
+										}
+									}
+								}
+								else {
+								 cout << "관리자 권한 없음!" << endl; 
+								}
+								break;
+							}
+						case 4: {
+								//admin이 권한이 있을 경우		 
+								if(admin.admin_login == true)
+								{
+									cout << "고객 정보 수정" << endl;
+									char before[20];
+									char after[20];
+									cout << "수정할 사람의 ID" << endl;
+									cin >> admin_id;
+									cout << "수정할 내용 입력" << endl;
+									cin >> before;
+									cout << "수정 내용 입력" << endl;
+									cin >> after;
+									//admin ID에 수정할 고객 이름 입력
+									admin.mtype = MSG_TYPE_ADMIN;
+									strcpy(admin.data.clientId, admin_id);
+								        strcpy(admin.data.clientName , before);	//변수 사용을 줄이기위해 임시 사용
+									strcpy(admin.data.clientPw , after);
+									int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+									
+								}
+								else 
+								{
+									cout << "권한 없음!" << endl;
+								}
+
+								break;
+							}
+
+						case 5: {
+								puts("관리자 로그아웃\n");
+								admin.admin_login == false;
+								break;
+							}
+
+					}
+					cout.clear();
+					break;
+				}
 		//클라이언트로 테스트
 		case 1: {		
 				//사용자 입력 데이터
