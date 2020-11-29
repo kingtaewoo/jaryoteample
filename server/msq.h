@@ -32,13 +32,22 @@ typedef struct __MsgClient {
 } MsgClient;
 
 //관리자와 서버가 통신할 메시지 형태
+//1.관리자 회원가입
+//2.관리자 로그인
+//3.모든 고객 정보 출력
+//4.특정 고객 정보 수정
+//5.관리자 로그아웃
+
+//관리자와 서버가 통신할 메시지 형태
 typedef struct __MsgAdmin {
-	long mtype;						//= MSG_TYPE_ADMIN
-	int cmd;						//작업 코드
-	char adminId[20];				//관리자 ID
-	char adminPw[20];				//관리자 PW
-	struct __ClientInfo data; 		//고객 정보(추후 변경 가능)
+	long mtype;				//= MSG_TYPE_ADMIN
+	int cmd;				//작업 코드
+	char adminId[20];		 	//관리자 ID(1,2,3,4에 필요)
+	char adminPw[20];			//관리자 PW(1,2,3,4에 필요)
+	bool admin_login;                       //관리자 권한(2,3,4,5에 필요)
+	bool admin_Done;                        //요청사항 완수 여부 (4에 필요)
+	char ClientInfo[256];		        //고객 정보(추후 변경 가능) (3 ,4에 필요)
+	int clientCnt;                          //총 고객의 수 (3에 필요)
+	struct __ClientInfo data;               //고객 정보;
 } MsgAdmin;
-
-
 #endif
