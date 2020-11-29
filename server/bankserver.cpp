@@ -138,25 +138,165 @@ int main(int argc, char const* argv[]) {
 	}
 
 	if(pid == 0){	//자식 프로세스(관리자와 통신)
-		cout<<"adminserver is working..";	//추후 구현 예정
-		/*
+		cout<<"adminserver is working.." << endl;	//추후 구현 예정
 		while(1){
 			memset(&admin, 0x00, sizeof(MsgAdmin));
 
-			int adminMsgSize = msgrcv(msq_id, &admin, MSG_SIZE_ADMIN, MSG_TYPE_ADMIN, 0);
-			if(adminMsgSize != -1) {//메시지 수신에 성공하면
-				
+			int rcvSize = msgrcv(msq_id, &admin, MSG_SIZE_ADMIN, MSG_TYPE_ADMIN, 0);
+			if(rcvSize == -1){
+				perror("msgrcv() error! ");
+				exit(-1);
+			}
+			else if(rcvSize != -1) {//메시지 수신에 성공하면
+
 				//관리자프로그램에서 날아온 작업 코드(admin.cmd)에 따라 해당 동작 수행
 				switch(admin.cmd){
-				case 1:		//관리자 회원가입
-				case 2:		//관리자 로그인
-				case 3:		//관리자 고객정보 조회
-				case 4:		//관리자 고객정보 수정요청
-				default:	//예상치 못한 오류
-				}
+					case 1:	//관리자 등록
+						{
+							admin.admin_login = false;
+							int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+							//msgsnd() 예외처리
+							if(sndSize != 0){
+								perror("msgsnd() error!(cmd=1) ");
+								exit(0);
+							}
+							cout << "관리자 등록 완료" << endl;
+							break;
+
+							//데이터 베이스에 관리자 저장 코드 생성
+
+						}
+					case 2:		//관리자 로그인
+						{  // 관리자 DB통해 로그인하려는 아이디와 비밀번호 부여
+							// 일치할경우 플래그 생성해서 관리자 권한 부여
+							if((strcmp(admin.adminId, "kim") == 0) && (strcmp(admin.adminPw, "1234") == 0)){
+								//MsgClient구조체에 정보를 담아 메시지 송신
+								admin.admin_login = true;            
+								int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+								cout << "관리자 로그인 완료" << endl;
+								//msgsnd() 예외처리
+								if(sndSize != 0){
+									perror("msgsnd() error!(cmd=1) ");
+									exit(0);
+								}
+							}
+							//일치하지 않으면
+							else{
+								//(bool) MsgClient.is_error을 참으로 변경한 뒤 메시지 송신
+								admin.admin_login = false;
+								int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+								//msgsnd() 예외처리
+								if(sndSize != 0){
+									perror("msgsnd() error!(cmd=1) ");
+									exit(0);
+								}
+								cout << "관리자 로그인 실패" <<endl;  
+							}
+							break;
+						}
+					case 3:		//관리자 고객정보 조회
+						{ 
+							puts("고객정보 출력 요청");
+							//권한이 있을 경우
+							if (admin.admin_login ==  true) 
+							{
+								int i = 0;
+								ifstream myfile("data.txt");
+								ifstream smyfile("data.txt");
+								char  ClientInfo[256];
+
+								//파일 오픈
+								if(myfile.is_open())
+								{
+									while(!myfile.eof())
+									{
+										myfile.getline(ClientInfo, 256);
+										i++;
+									}
+								}
+								myfile.close();
+								admin.mtype = MSG_TYPE_ADMIN;
+								admin.clientCnt = i;
+								i = 0;
+								int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+								//msgsnd() 예외처리
+								if(sndSize != 0){
+									perror("msgsnd() error!(cmd=1) ");
+									exit(0);
+								}
+
+								if(smyfile.is_open())
+								{				 
+									admin.mtype = MSG_TYPE_ADMIN;
+									while(!smyfile.eof())
+									{
+										smyfile.getline(ClientInfo , 256);
+										strcpy( admin.ClientInfo  , ClientInfo);
+										int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);         
+										//msgsnd() 예외처리
+										if(sndSize != 0){
+											perror("msgsnd() error!(cmd=1) ");
+											exit(0);
+										}
+										i++;
+									}
+								}
+								smyfile.close(); 
+							}
+							else 
+							{
+								admin.mtype = MSG_TYPE_ADMIN;
+								admin.admin_login = false;
+								int sndSize = msgsnd(msq_id, &admin, MSG_SIZE_ADMIN, 0);
+								//msgsnd() 예외처리
+								if(sndSize != 0){
+									perror("msgsnd() error!(cmd=1) ");
+									exit(0);
+								}
+							}
+							break;
+							//관리자 권한이 있으면 관리자 고객정보 전송
+						}
+					case 4:		//관리자 고객정보 수정요청
+						{
+							//관리자 권한이 있으면 관리자 고객정보 수정
+							puts("고객정보 출력 요청");
+							fstream myfile("data.txt");
+							char  ClientInfo[256];
+							char  tok_client[256];
+							char* tok;
+							int index = 0;
+							if(myfile.is_open())
+							{/*
+								while(!myfile.eof())
+								{
+								 myfile.getline(ClientInfo, 256);
+								 strcpy( tok_client,ClientInfo);
+								 tok = strtok(tok_client, " ");
+								 if(admin.data.clientId == tok)
+								 {
+								  index = tok_client.find(admin.data.clientName);
+								  if(index == string::npos) break;
+								  tok_client.replace(index , strlen(admin.data.clientName) , admin.data.clientPw);
+								  strcpy(ClientInfo , tok_client);
+								  cout << ClientInfo << endl;
+								 } 
+								}
+								*/
+							}
+							myfile.close();
+
+
+							
+						break;
+						}
+					default:	//예상치 못한 오류
+						{
+						}
+				}			
 			}
 		}
-		cout.clear();*/
+		cout.clear();
 	}
 
 	return 0;
